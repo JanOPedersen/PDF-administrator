@@ -14,7 +14,8 @@ def connect(func):
 
 def connect_to_db():
     print('New connection to MySQL DB...')
-    connection = mysql.connect(host="localhost",user="root",password="1234",database="endnote")
+    connection = mysql.connect( host="localhost",user="root",
+                                password="1234",database="endnote")
     return connection
 
 def disconnect_from_db(conn=None):
@@ -41,7 +42,8 @@ def mySQLinsert(conn, filename, filepath):
         raise Exception('INSERT STATUS: filename and filepath required')
     else:
         cursor = conn.cursor()
-        cursor.execute("insert into pdf (filename,filepath) values('" + filename +"','" + filepath +"')")
+        cursor.execute("insert into pdf (filename,filepath) values('" + 
+                        filename +"','" + filepath +"')")
         cursor.execute("commit")
         conn.close()
 
@@ -60,7 +62,8 @@ def mySQLupdate(conn, id, varAll):
 
     # In order to update we need at least the ID
     if id != "":
-        executeSQL(conn, "update pdf set flags = " + str(varAll) +  " where idpdf = '" + id + "'", read=False)
+        executeSQL(conn, "update pdf set flags = " + str(varAll) +  
+                         " where idpdf = '" + id + "'", read=False)
     else:
         raise Exception('UPDATE STATUS: id required')
 
@@ -77,7 +80,8 @@ def getFromId(conn, id):
 
 @connect
 def getFromFlags(conn, varAll):
-    rows = executeSQL(conn, "SELECT * FROM endnote.pdf WHERE (flags & " + str(varAll) + ") = " + str(varAll))
+    rows = executeSQL(conn, "SELECT * FROM endnote.pdf WHERE (flags & " +
+                            str(varAll) + ") = " + str(varAll))
     return rows
 
 @connect
@@ -91,7 +95,8 @@ def getFromKeywords(conn, keywords, varAll, retAll):
         if retAll == 1:
             rows = executeSQL(conn, "SELECT * FROM endnote.pdf WHERE filename REGEXP '" + sql +"'")
         else:
-            rows = executeSQL(conn, "SELECT * FROM endnote.pdf WHERE filename REGEXP '" + sql +"' and (flags & " + str(varAll) + ") = " + str(varAll))
+            rows = executeSQL(conn, "SELECT * FROM endnote.pdf WHERE filename REGEXP '" +
+                                    sql +"' and (flags & " + str(varAll) + ") = " + str(varAll))
         return rows
     else:
         raise Exception("GET STATUS: no keywords supplied keywords")
@@ -103,7 +108,8 @@ def getFromFilepath(conn, filepath, varAll, retAll):
         if retAll == 1:
             rows = executeSQL(conn, "select * from endnote.pdf where filepath like '" + filepath + "%'")
         else:
-            rows = executeSQL(conn, "select * from endnote.pdf where filepath like '" + filepath + "%' and (flags & " + str(varAll) + ") = " + str(varAll))
+            rows = executeSQL(conn, "select * from endnote.pdf where filepath like '" +
+                                    filepath + "%' and (flags & " + str(varAll) + ") = " + str(varAll))
         return rows
     else:
         raise Exception("GET STATUS: filepath is empty")
