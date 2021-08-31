@@ -1,4 +1,17 @@
-""" The combined MVC pattern, where we have moved the MySQL stuff to backend.py"""
+""" PDF administrator implemented as a MVC pattern.
+
+This is a tkinter application that is used to administrate collections
+of scientific papers in PDF form. We can search, classify, add, update
+and delete papers. The app uses MySQL as a backend. The idea is in 
+the long run to add functionality for citation analysis, i.e. 
+generate a citation graph where it is possible to see which papers
+cite which. 
+
+    Usage example:
+
+    m = ModelMySQL()
+    v = view_controller(m)
+"""
 from tkinter import Listbox,Tk,Label,Entry,StringVar,Scrollbar,RIGHT,Y,Button,IntVar,Checkbutton
 import tkinter.messagebox as MessageBox
 import webbrowser
@@ -78,22 +91,22 @@ class view_controller():
         scrollbar = Scrollbar(self.root)
         scrollbar.pack(side=RIGHT, fill=Y)
         self.list.config(yscrollcommand=scrollbar.set)
-        self.list.bind('<Double-Button>', lambda event: self.get_selected())
+        self.list.bind("<Double-Button>", lambda event: self.get_selected())
         scrollbar.config(command=self.list.yview)
         scrollbar.place(x = x,y = y,height = height)
 
     def add_buttons(self, x, y, buttonsSpacing):
         """Add buttons so that they are bottom aligned and left aligned with the list box
-           TODO: how do we most elegantly call controller functions from within the "view"
+           TODO(jan.o.pedersen@mail.dk): how do we most elegantly call controller functions from within the "view"
            and reversibly?"""
-        ButtonTxts = ['insert', 'delete', 'update', 'get', 'get Selected',
-                      'show Selected', 'clear all']
+        ButtonTxts = ["insert", "delete", "update", "get", "get Selected",
+                      "show Selected", "clear all"]
         ButtonCommands = [self.insert, self.delete, self.update, self.get,
                           self.get_selected, self.showSelected, self.clearAll]
 
         for txt, cmd in zip(ButtonTxts, ButtonCommands):
-            btn = Button(self.root, text=txt, font=('italic', 10),
-                         bg='white', command = cmd)
+            btn = Button(self.root, text=txt, font=("italic", 10),
+                         bg="white", command = cmd)
             btn.place(x = x + buttonsSpacing ,y = y)
             self.root.update()
             x += (buttonsSpacing + btn.winfo_width())
@@ -102,11 +115,11 @@ class view_controller():
 
     def add_hits_label(self, x, y):
         """ Add a label to show the number of results retrieved """
-        nofHitsLabel = Label(self.root, text='# of results:', font = ('bold', 10))
+        nofHitsLabel = Label(self.root, text="# of results:", font = ("bold", 10))
         nofHitsLabel.place(x = x,y = y)
         self.root.update()
         self.nofHitsText = StringVar()
-        nofHits = Label(self.root, font = ('bold', 10), textvariable=self.nofHitsText)
+        nofHits = Label(self.root, font = ("bold", 10), textvariable=self.nofHitsText)
         nofHits.place(x = x + nofHitsLabel.winfo_width() + 5,y = y)
 
     def add_retrieve_checkbox(self, x, y, buttonsSpacing):
@@ -121,8 +134,8 @@ class view_controller():
     def add_class_checkboxes(self, x, y, height):
         """Add check boxes for our PDF paper classifications"""
         self.flags = 0
-        classes = ['machine learning','deep learning','reinforcement learning',
-                   'Google','Computer Vision','printed','speculative','mathematics']
+        classes = ["machine learning","deep learning","reinforcement learning",
+                   "Google","Computer Vision","printed","speculative","mathematics"]
         self.vars = [IntVar() for x in [None] * len(classes)]
         self.chkBoxes = []
         for txt, i, variable in zip(classes, range(len(classes)), self.vars):
@@ -134,19 +147,19 @@ class view_controller():
 
     def add_entry_fields(self, x, y):
         """Add the 3 fields for filename, filepath and id"""
-        filepath = Label(self.root, text='Path', font = ('bold', 10))
+        filepath = Label(self.root, text='Path', font = ("bold", 10))
         filepath.place(x=x,y=y)
 
         self.root.update()
-        filename = Label(self.root, text='Filename', font = ('bold', 10))
+        filename = Label(self.root, text="Filename", font = ("bold", 10))
         filename.place(x=x,y=filepath.winfo_height() + filepath.winfo_y())
 
         self.root.update()
-        file_id = Label(self.root, text='ID', font = ('bold', 10))
+        file_id = Label(self.root, text="ID", font = ("bold", 10))
         file_id.place(x=x,y=filename.winfo_height() + filename.winfo_y())
 
         self.root.update()
-        number = Label(self.root, text='number', font = ('bold', 10))
+        number = Label(self.root, text="number", font = ("bold", 10))
         number.place(x=x,y=file_id.winfo_height() + file_id.winfo_y())
 
         self.root.update()
@@ -164,7 +177,7 @@ class view_controller():
         self.e_id.place(x=entriesX, y=file_id.winfo_y(), width=60)
 
         self.numberText = StringVar()
-        self.number_val = Label(self.root, font = ('bold',10), textvariable=self.numberText)
+        self.number_val = Label(self.root, font = ("bold",10), textvariable=self.numberText)
         self.number_val.place(x=entriesX, y=number.winfo_y(), width=60)
 
         return number.winfo_height(), number.winfo_y()
@@ -212,13 +225,14 @@ class view_controller():
     def fillCheckBoxes(self,var):
         """Given the numeric value var, we fill the checkboxes with
            its binary representation"""
-        def get_bit(num, i) -> int:
+        def _get_bit(num, i) -> int:
             return (num & (1 << i)) != 0
 
         for i in range(len(self.vars)):
-            self.vars[i].set(get_bit(var, i))
-            if i == 5:
-                self.chkBoxes[i].configure(state = 'disabled' if get_bit(var, i) == 1 else 'normal')
+            self.vars[i].set(_get_bit(var, i))
+            if i == 5: 
+                self.chkBoxes[i].configure(state = 'disabled' 
+                                           if _get_bit(var, i) == 1 else 'normal')
 
     def getFlags(bitfield) -> int:
         """This is an unbound Python function which works like a static C++ class function
@@ -230,7 +244,7 @@ class view_controller():
 
     def insert(self):
         """insert a new entry into the database
-           TODO: we still have to implement the insert operation"""
+           TODO(jan.o.pedersen@mail.dk): we still have to implement the insert operation"""
         filename = self.e_filename.get()
         filepath = self.e_filepath.get()
 
@@ -239,9 +253,9 @@ class view_controller():
         try:
             file_id = self.e_id.get()
             self.model.delete(file_id)
-            self.e_filename.delete(0,'end')
-            self.e_filepath.delete(0,'end')
-            self.e_id.delete(0,'end')
+            self.e_filename.delete(0,"end")
+            self.e_filepath.delete(0,"end")
+            self.e_id.delete(0,"end")
             self.list.delete(self.sel,self.sel)
             self.nofHitsText.set("")
             self.numberText.set("")
@@ -260,9 +274,9 @@ class view_controller():
 
     def displayRow(self,row):
         """Given a database row we display it in the frontend"""
-        self.e_filename.delete(0, 'end')
-        self.e_filepath.delete(0, 'end')
-        self.e_id.delete(0, 'end')
+        self.e_filename.delete(0, "end")
+        self.e_filepath.delete(0, "end")
+        self.e_id.delete(0, "end")
         self.e_id.insert(0, row[0])
         self.e_filename.insert(0, row[1])
         self.e_filepath.insert(0, row[2])
@@ -273,18 +287,36 @@ class view_controller():
     def displayRows(self,rows):
         """Given a list of rows, display them in the list box"""
         rows.sort(key=lambda s: s[1].lower())
-        self.list.delete(0,'end')
+        self.list.delete(0,"end")
         for index in range(len(rows)):
             self.list.insert(index + 1, rows[index][1])
 
     def get(self):
-        """Depending on which query fields are filed out we do the relavant database query"""
+        """Depending on which query fields are filled out we do the relavant database query.
+
+        The different combinations of query field content are as follows:
+
+        1) There is no search information and the retrieve all checkbox is unchecked:
+           The classification checkboxes are used as a query
+
+        2) There is an ID but the filename and filepath is empty:
+           The ID is used as a query
+
+        3) No ID and no filepath, but some keywords in the filename entry:
+           Use the keywords to piece together a query for matching filename
+
+        4) There is a filepath and the ID and filename fields are empty:
+           Use the filepath to find all files in subfolders of it
+
+        Raises:
+            ValueError: the database query threw some exception
+        """
         try:
             # In case we don't supply any seach information, but have the retrieve all checkbox
             # unchecked we use the flags as a query
             self.flags = view_controller.getFlags(self.vars)
-            if (self.e_id.get() == "" and self.e_filename.get() == ""
-                and self.e_filepath.get() == "" and self.ret_all.get() == 0):
+            if (not self.e_id.get() and not self.e_filename.get()
+                and not self.e_filepath.get() and self.ret_all.get() == 0):
                 rows = self.model.get_from_flags(self.flags)
                 self.nofHitsText.set(str(len(rows)))
 
@@ -292,7 +324,7 @@ class view_controller():
                     self.displayRow(rows[0])
                     self.list.delete(0,'end')
                     self.list.insert(1, rows[0][1])
-                elif len(rows) == 0:
+                elif not rows:
                     MessageBox.showinfo("GET FROM FLAGS STATUS","no records found with given flags")
                 # In case of multiple matches fill the listbox so that the user can select
                 elif rows:
@@ -300,18 +332,17 @@ class view_controller():
 
             # In case we have an ID entered we want to retrieve the corresponding database entry
             # and display the result
-            elif (self.e_id.get() != "" and self.e_filename.get() == ""
-                    and self.e_filepath.get() == ""):
+            elif (self.e_id.get() and not self.e_filename.get()
+                  and not self.e_filepath.get()):
                 rows = self.model.get_from_id(self.e_id.get())
                 self.displayRow(rows[0])
-                self.list.delete(0, 'end')
+                self.list.delete(0, "end")
                 self.list.insert(1, rows[0][1])
 
             # in case we don't supply an ID but have an approximate file name, we want to find
             # the closest match in the database and update all fields (including the file name)
-            elif (self.e_filename.get() != "" and self.e_id.get() == ""
-                  and self.e_filepath.get() == ""):
-                # First we extract the keywords
+            elif (self.e_filename.get() and not self.e_id.get()
+                  and not self.e_filepath.get()):
                 filename = self.e_filename.get()
                 keywords = filename.split()
                 rows = self.model.get_from_keywords(keywords, self.flags, self.ret_all)
@@ -326,8 +357,8 @@ class view_controller():
                 if rows:
                     self.displayRows(rows)
 
-            elif (self.e_filename.get() == "" and self.e_id.get() == ""
-                  and self.e_filepath.get() != ""):
+            elif (not self.e_filename.get() and not self.e_id.get()
+                  and self.e_filepath.get()):
                 # First we extract the windows sub path
                 filepath = self.e_filepath.get()
                 filepath = filepath. replace("\\", "/")
@@ -335,8 +366,7 @@ class view_controller():
                 self.nofHitsText.set(str(len(rows)))
 
                 # If there is only one result we fill the fields with it
-                if len(rows) == 1:
-                    self.displayRow(rows[0])
+                if len(rows) == 1: self.displayRow(rows[0])
 
                 # In case of multiple matches fill the listbox so that the user can select
                 elif not rows:
@@ -385,9 +415,9 @@ class view_controller():
 
     def clearAll(self):
         """Clear all entry fields"""
-        self.e_filename.delete(0, 'end')
-        self.e_filepath.delete(0, 'end')
-        self.e_id.delete(0, 'end')
+        self.e_filename.delete(0, "end")
+        self.e_filepath.delete(0, "end")
+        self.e_id.delete(0, "end")
         self.list.delete(0, self.list.size())
         self.nofHitsText.set("")
         self.numberText.set("")
