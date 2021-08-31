@@ -1,9 +1,18 @@
-"""We should need only mysql for the backend (model)"""
+"""Backend implementation for the PDF administrator.
+
+The backend code is just a collection of global functions. This
+follows the MVC design pattern philosophy so that there is no
+frontend code in this file.
+TODO(jan.o.pedersen@mail.dk): clean up and encapsulate in a class
+
+    Usage:
+    The functions here are accessed from the view_controller.py file
+"""
 import mysql.connector as mysql
 
 def connect(func):
     """This wrapper function connects to the database if it is not already done
-       TODO: use this decorator to wrap commit/rollback in a try/except block ?
+       TODO(jan.o.pedersen@mail.dk): use this decorator to wrap commit/rollback in a try/except block ?
        see http://www.kylev.com/2009/05/22/python-decorators-and-database-idioms/"""
     def inner_func(conn, *args, **kwargs):
         if conn is None:
@@ -39,8 +48,8 @@ def executeSQL(conn, sql, read = True):
 @connect
 def mySQLinsert(conn, filename, filepath):
     """If we can't insert we raise an exception"""
-    if filename == "" or filepath == "":
-        raise Exception('INSERT STATUS: filename and filepath required')
+    if not filename or not filepath:
+        raise Exception("INSERT STATUS: filename and filepath required")
     cursor = conn.cursor()
     cursor.execute("insert into pdf (filename,filepath) values('" +
                         filename +"','" + filepath +"')")
@@ -50,80 +59,81 @@ def mySQLinsert(conn, filename, filepath):
 @connect
 def mySQLdelete(conn, file_id):
     """given id delete the row in the database"""
-    if file_id == "":
-        raise Exception('DELETE STATUS: ID is compolsary for del')
+    if not file_id:
+        raise Exception("DELETE STATUS: ID is compolsary for del")
     executeSQL(conn, "delete from pdf where idpdf = '" + file_id +"'", read=False)
 
 @connect
-def mySQLupdate(conn, file_id, varAll):
-    """Update the id field with value varAll"""
+def mySQLupdate(conn, file_id, flags):
+    """Update the id field with value flags"""
     # We only update bit fields for now, because we assume that the set
     # table of PDF files is relatively stable
 
     # In order to update we need at least the ID
-    if file_id != "":
-        executeSQL(conn, "update pdf set flags = " + str(varAll) +
+    if file_id:
+        executeSQL(conn, "update pdf set flags = " + str(flags) +
                          " where idpdf = '" + file_id + "'", read=False)
     else:
-        raise Exception('UPDATE STATUS: id required')
+        raise Exception("UPDATE STATUS: id required")
 
 @connect
 def get_from_id(conn, file_id):
     """Given id find the corresponding row"""
-    if file_id != "":
+    if file_id:
         rows = executeSQL(conn, "select * from pdf where idpdf = '" + file_id +"'")
-        if len(rows) == 1:
-            return rows
-        raise Exception('GET FROM ID STATUS: no records found with ID')
-    raise Exception('GET FROM ID STATUS: ID empty')
+        if len(rows) == 1: return rows
+        raise Exception("GET FROM ID STATUS: no records found with ID")
+    raise Exception("GET FROM ID STATUS: ID empty")
 
 @connect
-def get_from_flags(conn, varAll):
+def get_from_flags(conn, flags):
     """Given flags find the corresponding row"""
     rows = executeSQL(conn, "SELECT * FROM endnote.pdf WHERE (flags & " +
-                            str(varAll) + ") = " + str(varAll))
+                            str(flags) + ") = " + str(flags))
     return rows
 
 @connect
-def get_from_keywords(conn, keywords, varAll, retAll):
+def get_from_keywords(conn, keywords, flags, retAll):
     """Given keywords find the corresponding rows that contain
        the keywords in the order they appear in the list"""
-    if len(keywords) > 0:
+    if len(keywords):
          # Piece together the SQL REGEX query string
-        sql = "^"
+        items = ["^"]
         for keyword in keywords[:-1]:
-            sql += (keyword + "[[:blank:][:graph:]]*")
-        sql += keywords[-1]
+            items.append(keyword + "[[:blank:][:graph:]]*")
+        items.append(keywords[-1])
+        sql = "".join(items)
+
         if retAll == 1:
             rows = executeSQL(conn, "SELECT * FROM endnote.pdf WHERE filename REGEXP '" + sql +"'")
         else:
             rows = executeSQL(conn, "SELECT * FROM endnote.pdf WHERE filename REGEXP '" +
-                                    sql +"' and (flags & " + str(varAll) + ") = " + str(varAll))
+                                    sql +"' and (flags & " + str(flags) + ") = " + str(flags))
         return rows
     raise Exception("GET STATUS: no keywords supplied keywords")
 
 @connect
-def get_from_filepath(conn, filepath, varAll, retAll):
+def get_from_filepath(conn, filepath, flags, retAll):
     """Given a filepath find super strings (subfolders) of it in the filepath field"""
-    if filepath != "":
+    if filepath:
         # Then piece together the SQL substring query
         if retAll == 1:
             rows = executeSQL(conn,
             "select * from endnote.pdf where filepath like '" + filepath + "%'")
         else:
             rows = executeSQL(conn, "select * from endnote.pdf where filepath like '" +
-                                    filepath + "%' and (flags & " + str(varAll)
-                                    + ") = " + str(varAll))
+                                    filepath + "%' and (flags & " + str(flags)
+                                    + ") = " + str(flags))
         return rows
     raise Exception("GET STATUS: filepath is empty")
 
 @connect
 def mySQLgetSelected(conn, filename):
     """Given a filename find the row in the database"""
-    if filename != "":
+    if filename:
         rows = executeSQL(conn, "SELECT * FROM endnote.pdf WHERE filename = '" + filename +"'")
         return rows
-    raise Exception('GET SELECTED STATUS: filename is empty')
+    raise Exception("GET SELECTED STATUS: filename is empty")
 
 @connect
 def update_numbers(conn):
